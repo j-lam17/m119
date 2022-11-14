@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ping Pong</title>
+    <link href="../style.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+	<h1 id="aX"></h1>
+	<button onClick="startGame()">click me to start the game</button>
+	<h1 id="winner text" data-f-showif="leftWins || rightWins" style="color: white"></h1>
+	<div class="canvas-container">
+		<p class="left">0</p>
+		<div class="wrapper">
+			<canvas id="container"></canvas>
+		</div>
+		<p class="right">0</p>
+	</div>
+</body>
+
+<script>
+/**
+ * Canvas and Context
+ */
+const canvas = document.getElementById('container')
+const context = canvas.getContext("2d")
+
+
+/**
+ * Objects
+ */
+const ball = {
+    radius: 8,
+    positionX: canvas.width / 2 + 8,
+    positionY: canvas.height / 2 + 8,
+    velocityX: 2,
+    velocityY: 2,
+    color: 'white'
+}
+
+const leftPlayer = {
+    height: 100,
+    width: 10,
+    positionX: 10,
+    positionY: canvas.height / 2 - 100 / 2,
+    color: 'white',
+    player: 'left',
+    speed: 4
+}
+
+const rightPlayer = {
+    height: 100,
+    width: 10,
+    positionX: canvas.width - 20,
+    positionY: canvas.height / 2 - 100 / 2,
+    color: 'white',
+    player: 'right',
+    speed: 4
+}
+
+// boolean to indicate a connection has been made and the game can start
+let connection = false
+// boolean to indicate that the start button has been clicked
+let start = false
+// boolean for indicating winner
+let rightWins = false
+let leftWins = false
+
+
+/**
+ * Game
+ */
+const game = {
+    leftScore: 0,
+    rightScore: 0,
+    turn: 0,
+    topScore: 3,
+    speedIncreaseHit: 3,
+}
+
+const keyPressed = {
+    W: false,
+    S: false,
+    Up: false,
+    Down: false
+}
+
+let activated = true;
+let hits = 0;
+let up = true;
+
+
+
+/**
+ * Update and Draw
+ */
+function startGame() {
+	start = true;
+	leftWins = false;
+	rightWins = false;
+	document.getElementById("winner text").innerHTML = "";
+}
+
+function drawLeftPlayer() {
+    context.beginPath();
+    context.fillStyle = leftPlayer.color;
+    context.rect(leftPlayer.positionX, leftPlayer.positionY, leftPlayer.width, leftPlayer.height);
+    context.fill();
+    context.closePath();
+}
+
+function drawRightPlayer() {
+    context.beginPath();
+    context.fillStyle = rightPlayer.color;
+    context.rect(rightPlayer.positionX, rightPlayer.positionY, rightPlayer.width, rightPlayer.height);
+    context.fill();
+    context.closePath();
+}
+
+
+function drawBall() {
+    context.beginPath();
+    context.fillStyle = ball.color;
+    context.arc(ball.positionX, ball.positionY, ball.radius, 0, Math.PI * 2);
+    context.fill();
+    context.closePath();
+}
+
+
+function drawAll() {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    drawLeftPlayer()
+    drawRightPlayer()
+    drawBall()
+}
+
+
+function resetBall() {
+    ball.positionX = canvas.width / 2 + 8
+    ball.positionY = canvas.height / 2 + 8
+
+    let velocityX = ball.velocityX
+    let velocityY = ball.velocityY
+
+    ball.velocityX = 0
+    ball.velocityY = 0
+
+    setTimeout(() => {
+        ball.velocityX = -velocityX
+        ball.velocityY = -velocityY
+    }, 1000)
+}
+
+
+function collisionTimeLag() {
+    activated = false
+    // console.log('Deactivated Collision')
+    setTimeout(() => {
+        activated = true
+        // console.log('Ready For Collision')
+    }, 1000)
+}
+
+
+function setScore() {
+    if (ball.positionX > canvas.width - (rightPlayer.width)) {
+        game.leftScore++
+        resetBall()
+    } else if (ball.positionX < rightPlayer.width) {
+        game.rightScore++
+        resetBall()
+    }
+
+    document.getElementsByClassName('left')[0].textContent = game.leftScore
+    document.getElementsByClassName('right')[0].textContent = game.rightScore
+}
+
+
+function gameOver(){
+    if(game.leftScore === game.topScore){
+        console.log('Left Wins')
+		leftWins = true
+		document.getElementById("winner text").innerHTML = "Left Wins";
+        // sessionStorage.setItem("winner", "Left");
+        // window.location.href = "winner.html";
+        resetGame()
+    }else if(game.rightScore === game.topScore){
+        console.log('Right Wins')
+		rightWins = true
+		document.getElementById("winner text").innerHTML = "Right Wins";
+        // sessionStorage.setItem("winner", "Right");
+        // window.location.href = "winner.html";
+        resetGame()
+    }
+}
+
+
+function resetGame(){
+    game.leftScore = 0
+    game.rightScore = 0
+    ball.positionX = 0
+    ball.positionY = 0
+	start = false
+    updateDefault()
+}
+
+// adjusted Up/Down to allow computer to play
+function updateKeyPresses() {
+	// update the leftPlayer to be controlled by the accelerometer
+    // if (keyPressed['W']) {
+    //     if (leftPlayer.positionY > 0) {
+    //         leftPlayer.positionY -= leftPlayer.speed;
+    //     }
+    // }
+    // if (keyPressed['S']) {
+    //     if (leftPlayer.positionY < canvas.height - leftPlayer.height) {
+    //         leftPlayer.positionY += leftPlayer.speed;
+    //     }
+    // }
+
+	if (sensorValue < 0) {
+		if (leftPlayer.positionY < canvas.height - leftPlayer.height) {
+			leftPlayer.positionY = Math.min(leftPlayer.positionY + leftPlayer.speed, canvas.height - leftPlayer.height);
+		}
+	} else if (sensorValue > 0){
+		if (leftPlayer.positionY > 0) {
+			leftPlayer.positionY = Math.max(leftPlayer.positionY - leftPlayer.speed, 0);
+		}
+	} else {
+		// do nothing
+	}
+
+    // Changed rightPlayer to just oscillate up and down
+    // if (keyPressed['Up']) {
+    //     if (rightPlayer.positionY > 0) {
+    //         rightPlayer.positionY -= rightPlayer.speed;
+    //     }
+    // }
+    // if (keyPressed['Down']) {
+    //     if (rightPlayer.positionY < canvas.height - rightPlayer.height) {
+    //         rightPlayer.positionY += rightPlayer.speed;
+    //     }
+    // }
+	if (connection && start) {
+		if (up && rightPlayer.positionY > 0) {
+        	rightPlayer.positionY = Math.max(rightPlayer.positionY - rightPlayer.speed, 0);
+		} 
+		else if (up && rightPlayer.positionY == 0) {
+			up = false;
+		} 
+		else if (!up && rightPlayer.positionY < canvas.height - rightPlayer.height) {
+			rightPlayer.positionY = Math.min(rightPlayer.positionY + rightPlayer.speed, canvas.height - rightPlayer.height);
+		} else {
+			up = true;
+		}
+	}
+}
+
+function updateStates() {
+	if (connection && start) {
+		if ((ball.positionY + ball.radius) >= canvas.height || (ball.positionY - ball.radius) <= 0) {
+			ball.velocityY = -ball.velocityY;
+		}
+
+		if (
+			(ball.positionX + ball.radius >= canvas.width - (rightPlayer.width + 10) &&
+				(ball.positionY >= rightPlayer.positionY && ball.positionY <= rightPlayer.positionY + rightPlayer.height)) ||
+
+			(ball.positionX - ball.radius <= (leftPlayer.width + 10) &&
+				(ball.positionY >= leftPlayer.positionY && ball.positionY <= leftPlayer.positionY + leftPlayer.height))
+		) {
+			if (activated) {
+				hits++;
+				ball.velocityX = -ball.velocityX
+				collisionTimeLag()
+			}
+		}
+
+		setScore()
+		gameOver()
+
+		if(hits === game.speedIncreaseHit){
+			hits = 0
+			ball.velocityX += 0.2
+			ball.velocityY += 0.2
+			leftPlayer.speed += 0.2
+			rightPlayer.speed += 0.2
+
+			// console.log(ball.velocityX, leftPlayer.speed);
+		}
+
+		ball.positionX += ball.velocityX;
+		ball.positionY += ball.velocityY;
+	}
+}
+
+
+/**
+ * Key Listeners
+ */
+/*
+document.addEventListener('keydown', (event) => {
+    var name = event.key;
+    var code = event.code;
+
+    if (code === 'KeyS') {
+        keyPressed['S'] = true;
+    }
+    if (code === 'KeyW') {
+        keyPressed['W'] = true;
+    }
+    if (code === 'ArrowUp') {
+        keyPressed['Up'] = true;
+    }
+    if (code === 'ArrowDown') {
+        keyPressed['Down'] = true;
+    }
+
+}, false);
+
+
+
+document.addEventListener('keyup', (event) => {
+    var name = event.key;
+    var code = event.code;
+
+    if (code === 'KeyS') {
+        keyPressed['S'] = false;
+    }
+    if (code === 'KeyW') {
+        keyPressed['W'] = false;
+    }
+    if (code === 'ArrowUp') {
+        keyPressed['Up'] = false;
+    }
+    if (code === 'ArrowDown') {
+        keyPressed['Down'] = false;
+    }
+
+}, false);
+*/
+
+
+/**
+ * Game Loop and Render
+ */
+function gameLoop() {
+	updateKeyPresses()
+    updateStates()
+    drawAll()
+    requestAnimationFrame(gameLoop);   
+}
+
+requestAnimationFrame(gameLoop);
+
+
+
+
+/**
+ * Support
+ */
+function updateDefault() {
+    canvas.width = Math.min(window.innerWidth * 0.6, 800)
+    canvas.height = Math.min(window.innerHeight * 0.8, 600)
+
+    ball.positionX = canvas.width / 2 + ball.radius
+    ball.positionY = canvas.height / 2 + ball.radius
+
+    leftPlayer.positionY = canvas.height / 2 - leftPlayer.height / 2
+
+    rightPlayer.positionX = canvas.width - (rightPlayer.width + 10)
+    rightPlayer.positionY = canvas.height / 2 - rightPlayer.height / 2
+}
+
+function resizeHandler() {
+    document.getElementsByClassName('canvas-container')[0].style.display = "flex";
+    updateDefault()
+}
+
+resizeHandler();
+window.addEventListener('resize', () => { resizeHandler() })
+</script>
+
+<script type="application/javascript">
+
+	const SERVERADDRESS = "http://127.0.0.1:3000"
+
+	// use XML HTTP request to grab data from the server (central)
+	let xmlhttp = new XMLHttpRequest()
+	var sensorValue = 0
+	xmlhttp.onreadystatechange = function () {
+		if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+			let responseText = xmlhttp.responseText
+			sensorValue = parseFloat(JSON.parse(responseText).sensorValue)
+
+			// added for m4
+			document.getElementById("aX").innerHTML = sensorValue;
+			if (!connection) {
+				connection = true
+			}
+
+			// removed for m4
+			// use d3 to visualize sensor value as the web page background color
+			// let colorValue = Math.max(0, Math.min((sensorValue + 1) * 0.5, 1))
+			// console.log(colorValue)
+			// let color = "rgba(0, 0, 0, " + colorValue + ")"
+			// d3.select("body").style("background-color", color)
+			
+		}
+	}
+
+	// periodically grab data
+	let getData = () => {
+		xmlhttp.open("POST", SERVERADDRESS, true)
+		xmlhttp.setRequestHeader("Content-type", "application/json")
+		xmlhttp.send("")
+		setTimeout(() => {
+			getData()
+		}, 10)
+	}
+
+	getData()
+
+</script>
+
+</html>
